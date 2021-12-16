@@ -31,7 +31,7 @@ from linebot.models import (
     FlexSendMessage, BubbleContainer, ImageComponent, BoxComponent,
     TextComponent, IconComponent, ButtonComponent,
     SeparatorComponent, QuickReply, QuickReplyButton,
-    ImageSendMessage)
+    ImageSendMessage, MessageTemplateAction)
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_host=1, x_proto=1)
@@ -69,13 +69,109 @@ def callback():
 
     return 'OK'
 
+# global variables
+QUESTION = 0
+START = 0
+
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
+    global QUESTION
+    global START
     text = event.message.text
-    if text.lower() == "start":
+    # button template
+    # Q1
+    if text.lower() == "start1":
+        QUESTION = 1
+        START = 1
+        message = TemplateSendMessage(
+            alt_text = "是否指定基酒?",
+            template = ButtonsTemplate(
+                thumbnail_image_url="https://i2.kknews.cc/SIG=3j4a194/qqo00048rs927p7qp3p.jpg",
+                text="是否指定基酒?",
+                actions=[
+                    MessageTemplateAction(label="是", text="是"),
+                    MessageTemplateAction(label="否", text="否")
+                ]
+            )
+        )
+        line_bot_api.reply_message(event.reply_token, message)
+    # quick reply
+    # P1
+    elif text.lower() == "start2":
+        QUESTION = 1
+        START = 2
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text="it works!")
+            TextSendMessage(
+                text="是否指定基酒?",
+                quick_reply=QuickReply(
+                    items=[
+                        QuickReplyButton(
+                            action=MessageAction(label="是", text="是")
+                        ),
+                        QuickReplyButton(
+                            action=MessageAction(label="否", text="否")
+                        ),
+                    ]
+                )
+            )
+        )
+    elif text.lower() == "否":
+        if QUESTION == 1:
+            QUESTION = 2
+            # Q2 P2
+            message = TemplateSendMessage(
+                alt_text = "是否指定口味?",
+                template = ConfirmTemplate(
+                    text="是否指定口味?",
+                    actions=[
+                        MessageAction(label="是", text="是"),
+                        MessageAction(label="否", text="否")
+                    ]
+                )
+            )
+            line_bot_api.reply_message(event.reply_token, message)
+        elif QUESTION == 2:
+            QUESTION = 3
+            # Q3 P3
+            message = TemplateSendMessage(
+                alt_text = "是否指定材料?",
+                template = ConfirmTemplate(
+                    text="是否指定材料?",
+                    actions=[
+                        MessageAction(label="是", text="是"),
+                        MessageAction(label="否", text="否")
+                    ]
+                )
+            )
+            line_bot_api.reply_message(event.reply_token, message)
+        elif QUESTION == 3:
+            QUESTION = 4
+            # Q4 P4
+            message = TemplateSendMessage(
+                alt_text = "是否偏好氣泡感?",
+                template = ConfirmTemplate(
+                    text="是否偏好氣泡感?",
+                    actions=[
+                        MessageAction(label="是", text="是"),
+                        MessageAction(label="否", text="否")
+                    ]
+                )
+            )
+            line_bot_api.reply_message(event.reply_token, message)
+        elif QUESTION == 4:
+            QUESTION = 0
+            line_bot_api.reply_message(
+                event.reply_token, [
+                    TextSendMessage(text="推薦中，請稍候 ..."),
+                    TextSendMessage(text="推薦您Mojito!")
+                ]
+            )
+    elif text.lower() == "是":
+        QUESTION = 0
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="還沒做啦 ..."),
         )
 
 if __name__ == "__main__":
