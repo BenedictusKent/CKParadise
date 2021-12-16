@@ -33,6 +33,16 @@ from linebot.models import (
     SeparatorComponent, QuickReply, QuickReplyButton,
     ImageSendMessage, MessageTemplateAction)
 
+from linebot.models import (
+    RichMenu,
+    RichMenuArea,
+    RichMenuSize,
+    RichMenuBounds,
+    URIAction
+)
+from linebot.models.actions import RichMenuSwitchAction
+from linebot.models.rich_menu import RichMenuAlias
+
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_host=1, x_proto=1)
 
@@ -71,107 +81,150 @@ def callback():
 
 # global variables
 QUESTION = 0
-START = 0
+PREFERENCE = None
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     global QUESTION
-    global START
+    global PREFERENCE
     text = event.message.text
-    # button template
     # Q1
-    if text.lower() == "start1":
+    if text.lower() == "start":
         QUESTION = 1
-        START = 1
         message = TemplateSendMessage(
-            alt_text = "是否指定基酒?",
+            alt_text = "什麼口味?",
             template = ButtonsTemplate(
-                thumbnail_image_url="https://i2.kknews.cc/SIG=3j4a194/qqo00048rs927p7qp3p.jpg",
-                text="是否指定基酒?",
+                # thumbnail_image_url="https://i2.kknews.cc/SIG=3j4a194/qqo00048rs927p7qp3p.jpg",
+                text="什麼口味?",
                 actions=[
-                    MessageTemplateAction(label="是", text="是"),
-                    MessageTemplateAction(label="否", text="否")
+                    MessageTemplateAction(label="酸(酸爽的青春)", text="酸"),
+                    MessageTemplateAction(label="甜(甜蜜的依戀)", text="甜"),
+                    MessageTemplateAction(label="苦(苦澀的成長)", text="苦"),
+                    MessageTemplateAction(label="特殊(夠大的心臟)", text="特殊"),
                 ]
             )
         )
         line_bot_api.reply_message(event.reply_token, message)
-    # quick reply
-    # P1
-    elif text.lower() == "start2":
-        QUESTION = 1
-        START = 2
+    # Q2
+    elif ((text.lower()=="酸") or (text.lower()=="甜") or (text.lower()=="苦") or (text.lower()=="特殊")) and QUESTION == 1:
+        QUESTION = 2
+        message = TemplateSendMessage(
+            alt_text = "3選1",
+            template = ButtonsTemplate(
+                # thumbnail_image_url="https://i2.kknews.cc/SIG=3j4a194/qqo00048rs927p7qp3p.jpg",
+                text="3選1",
+                actions=[
+                    MessageTemplateAction(label="果香", text="果香"),
+                    MessageTemplateAction(label="濃醇香", text="濃醇香"),
+                    MessageTemplateAction(label="自然香", text="自然香")
+                ]
+            )
+        )
+        line_bot_api.reply_message(event.reply_token, message)
+    # Q2a
+    elif (text.lower()=="果香") and QUESTION == 2:
+        QUESTION = 3
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(
-                text="是否指定基酒?",
+                text="選果香",
                 quick_reply=QuickReply(
                     items=[
                         QuickReplyButton(
-                            action=MessageAction(label="是", text="是")
+                            action=MessageAction(label="莓果", text="莓果")
                         ),
                         QuickReplyButton(
-                            action=MessageAction(label="否", text="否")
+                            action=MessageAction(label="葡萄", text="葡萄")
+                        ),
+                        QuickReplyButton(
+                            action=MessageAction(label="熱帶水果", text="熱帶水果")
+                        ),
+                        QuickReplyButton(
+                            action=MessageAction(label="蘋果", text="蘋果")
+                        ),
+                        QuickReplyButton(
+                            action=MessageAction(label="柑橘", text="柑橘")
+                        ),
+                        QuickReplyButton(
+                            action=MessageAction(label="台灣味", text="台灣味")
+                        ),
+                        QuickReplyButton(
+                            action=MessageAction(label="瓜類", text="瓜類")
+                        ),
+                        QuickReplyButton(
+                            action=MessageAction(label="檸檬萊姆", text="檸檬萊姆")
+                        ),
+                        QuickReplyButton(
+                            action=MessageAction(label="綜合", text="綜合")
+                        ),
+                        QuickReplyButton(
+                            action=MessageAction(label="桃類", text="桃類")
                         ),
                     ]
                 )
             )
         )
-    elif text.lower() == "否":
-        if QUESTION == 1:
-            QUESTION = 2
-            # Q2 P2
-            message = TemplateSendMessage(
-                alt_text = "是否指定口味?",
-                template = ConfirmTemplate(
-                    text="是否指定口味?",
-                    actions=[
-                        MessageAction(label="是", text="是"),
-                        MessageAction(label="否", text="否")
-                    ]
-                )
-            )
-            line_bot_api.reply_message(event.reply_token, message)
-        elif QUESTION == 2:
-            QUESTION = 3
-            # Q3 P3
-            message = TemplateSendMessage(
-                alt_text = "是否指定材料?",
-                template = ConfirmTemplate(
-                    text="是否指定材料?",
-                    actions=[
-                        MessageAction(label="是", text="是"),
-                        MessageAction(label="否", text="否")
-                    ]
-                )
-            )
-            line_bot_api.reply_message(event.reply_token, message)
-        elif QUESTION == 3:
-            QUESTION = 4
-            # Q4 P4
-            message = TemplateSendMessage(
-                alt_text = "是否偏好氣泡感?",
-                template = ConfirmTemplate(
-                    text="是否偏好氣泡感?",
-                    actions=[
-                        MessageAction(label="是", text="是"),
-                        MessageAction(label="否", text="否")
-                    ]
-                )
-            )
-            line_bot_api.reply_message(event.reply_token, message)
-        elif QUESTION == 4:
-            QUESTION = 0
-            line_bot_api.reply_message(
-                event.reply_token, [
-                    TextSendMessage(text="推薦中，請稍候 ..."),
-                    TextSendMessage(text="推薦您Mojito!")
+    # Q2b
+    elif (text.lower()=="濃醇香") and QUESTION == 2:
+        QUESTION = 3
+        message = TemplateSendMessage(
+            alt_text = "選濃醇香",
+            template = ButtonsTemplate(
+                # thumbnail_image_url="https://i2.kknews.cc/SIG=3j4a194/qqo00048rs927p7qp3p.jpg",
+                text="選濃醇香",
+                actions=[
+                    MessageTemplateAction(label="奶香", text="奶香"),
+                    MessageTemplateAction(label="咖啡", text="咖啡"),
+                    MessageTemplateAction(label="巧克力", text="巧克力"),
+                    MessageTemplateAction(label="堅果", text="堅果")
                 ]
             )
-    elif text.lower() == "是":
+        )
+        line_bot_api.reply_message(event.reply_token, message)
+    # Q2c
+    elif (text.lower()=="自然香") and QUESTION == 2:
+        QUESTION = 3
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(
+                text="選自然香",
+                quick_reply=QuickReply(
+                    items=[
+                        QuickReplyButton(
+                            action=MessageAction(label="薑味", text="薑味")
+                        ),
+                        QuickReplyButton(
+                            action=MessageAction(label="藥草", text="藥草")
+                        ),
+                        QuickReplyButton(
+                            action=MessageAction(label="香料", text="香料")
+                        ),
+                        QuickReplyButton(
+                            action=MessageAction(label="薄荷", text="薄荷")
+                        ),
+                        QuickReplyButton(
+                            action=MessageAction(label="茶香", text="茶香")
+                        ),
+                    ]
+                )
+            )
+        )
+    # Answer
+    elif QUESTION == 3:
+        QUESTION = 0
+        PREFERENCE = text
+        line_bot_api.reply_message(
+            event.reply_token, [
+                TextSendMessage(text="推薦中，請稍候..."),
+                TextSendMessage(text="推薦您喝Mojito!"),
+            ]
+        )
+    # Anything else
+    else:
         QUESTION = 0
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text="還沒做啦 ..."),
+            TextSendMessage(text="您打錯了吧？"),
         )
 
 if __name__ == "__main__":
